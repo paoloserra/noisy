@@ -1,20 +1,32 @@
 #!/usr/bin/env python
 
-# Import modules
-import numpy as np
-import pyrap.tables as tables
-import sys,os
+# This module defines functions useful for various scripts in the noisy repository
 
 # To be done
 # - frequency dependent Tsys
 # - MS files with 4 polarisation products (currently uses all available pols)
 
 
+
+######################
+### IMPORT MODULES ###
+######################
+
+
+
+import numpy as np
+import pyrap.tables as tables
+import sys,os
+
+
+
 ########################
 ### DEFINE FUNCTIONS ###
 ########################
 
-# Get single-MS flags, intervals, channel widths, channel frequencies and calculate natural rms (ignoring flags)
+
+
+### Get single-MS flags, intervals, channel widths, channel frequencies and calculate natural rms (ignoring flags)
 def processMS(ms,kB,tsys,eff,Aant,selectFieldName):
     print ''
     print '--- Working on file {0:s} ---'.format(ms)
@@ -71,8 +83,10 @@ def processMS(ms,kB,tsys,eff,Aant,selectFieldName):
 
     return flag,interval,channelWidths,channelFreqs,rms
 
-# Combine all input .MS files and predict natural rms
-def combineMS(MS,tsys,eff,diam,makePlot,selectFieldName):
+
+
+### Combine all input .MS files and predict natural rms (both ignoring and applying flags)
+def combineMS(MS,tsys,eff,diam,plotName,selectFieldName):
 
     # Derive quantities
     kB=1380.6                    # Boltzmann constant (Jy m^2 / K)
@@ -135,7 +149,7 @@ def combineMS(MS,tsys,eff,diam,makePlot,selectFieldName):
     print 'The Stokes I theoretical natural rms applying flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))
 
     # Plot
-    if makePlot==True:
+    if plotName!=None:
         print ''
         print '--- Plot ---'
         print 'Busy plotting ...'
@@ -146,5 +160,5 @@ def combineMS(MS,tsys,eff,diam,makePlot,selectFieldName):
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('rms (mJy)')
         plt.legend(('all data','unflagged data'),loc='lower right')
-        plt.savefig('rms.png')
-        print 'rms.png saved in working directory'
+        plt.savefig(plotName)
+        print 'Plot {0:s} saved in working directory'.format(plotName)

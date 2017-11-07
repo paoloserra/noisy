@@ -6,9 +6,6 @@ import pyrap.tables as tables
 import sys,os
 import noisy
 
-# To be done
-# - frequency dependent Tsys
-# - MS files with 4 polarisation products (currently uses all available pols)
 
 
 ###############################
@@ -19,7 +16,7 @@ import noisy
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
     print 'python predict_natural_rms.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]] [-tsys <tsys/K>] '
-    print '       [-eff <antenna efficiency>] [-diam <antenna diameter/m>] [-field <field name>] [-plot]'
+    print '       [-eff <antenna efficiency>] [-diam <antenna diameter/m>] [-field <field name>] [-plot <plot name with extension>]'
     sys.exit()
 else: arg=sys.argv
 
@@ -46,9 +43,9 @@ if '-field' in arg:
 else: selectFieldName=None
 # make plots? (default: False)
 if '-plot' in arg:
-    makePlot=True
-    del(arg[arg.index('-plot')])
-else: makePlot=False
+    plotName=arg[arg.index('-plot')+1]
+    del(arg[arg.index('-plot'):arg.index('-plot')+2])
+else: plotName=None
 
 # Get input files from command line
 MS=arg[1:]
@@ -75,4 +72,4 @@ else:
 ### GET NATURAL RMS ###
 #######################
 
-noisy.combineMS(MS,tsys,eff,diam,makePlot,selectFieldName)
+noisy.combineMS(MS,tsys,eff,diam,plotName,selectFieldName)
