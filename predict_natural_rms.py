@@ -5,6 +5,9 @@ import numpy as np
 import pyrap.tables as tables
 import sys,os
 
+# To be done
+# - frequency dependent Tsys
+# - MS files with 4 polarisation products (currently uses all available pols)
 
 
 ###############################
@@ -19,10 +22,7 @@ if 'help' in sys.argv or '-h' in sys.argv:
     sys.exit()
 else: arg=sys.argv
 
-
-
 # Get telescope parameters (default or from command line) and calculate derived quantities
-
 # tsys in K (default: 22 K)
 if '-tsys' in arg:
     tsys=np.float(arg[arg.index('-tsys')+1])
@@ -48,18 +48,10 @@ if '-plot' in arg:
     makePlot=True
     del(arg[arg.index('-plot')])
 else: makePlot=False
-# constants and derived quantities
-k = 1380.6                   # Boltzmann constant (Jy m^2 / K)
-Aant=np.pi*(diam/2)**2       # collecting area of 1 antenna (m^2)
-SEFD=2*k*tsys/eff/Aant       # system equivalent flux density (Jy)
-
-
 
 # Get input files from command line
-
 MS=arg[1:]
 checkfiles=[os.path.exists(jj) for jj in MS]
-
 if not len(MS):
     print ' CATASTROPHE!'
     print ' No input .MS file provided'
@@ -76,13 +68,12 @@ else:
     print '--- Will work on the following .MS files ---'
     for jj in range(len(MS)): print '',MS[jj]
 
-##############################
-### END COMMAND LINE INPUT ###
-##############################
 
 
 
-# Define functions
+########################
+### DEFINE FUNCTIONS ###
+########################
 
 # Get single-MS flags, intervals, channel widths, channel frequencies and calculate natural rms (ignoring flags)
 def processMS(ms,kB,tsys,eff,Aant,selectFieldName):
@@ -219,5 +210,10 @@ def combineMS(MS,tsys,eff,diam,makePlot,selectFieldName):
         plt.savefig('rms.png')
         print 'rms.png saved in working directory'
 
-# Run
+
+
+################
+### RUN CODE ###
+################
+
 combineMS(MS,tsys,eff,diam,makePlot,selectFieldName)
