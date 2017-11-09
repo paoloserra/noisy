@@ -200,4 +200,4 @@ def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
         plt.ylabel('rms (mJy)')
         plt.legend(('all data','unflagged data'),loc='lower right')
         plt.savefig(plotName)
-        print 'Plot {0:s} saved in working directory'.format(plotName)
+        print 'Plot {0:s} saved (full path)'.format(plotName)
