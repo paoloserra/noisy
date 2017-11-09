@@ -3,7 +3,6 @@
 # This module defines functions useful for various scripts in the noisy repository
 
 # To be done
-# - frequency dependent Tsys
 # - MS files with 4 polarisation products (currently uses all available pols)
 
 
@@ -25,9 +24,31 @@ import sys,os
 ########################
 
 
+### Get Tsys/eff (possibly from file)
+def GetTsyseff(tsyseff):
+    if os.path.exists(tsyseff):
+        print ' ( Tsys/eff from file {0:s} )'.format(tsyseff)
+        tsyseffFile,tsyseff=tsyseff,np.loadtxt(tsyseff)
+    else:
+        try: tsyseff=float(tsyseff)
+        except ValueError:
+            print ''
+            print ' CATASTROPHE!'
+            print ' You set Tsys/eff = {0:s}'.format(tsyseff)
+            print ' This is either a file that cannot be found or a value that cannot be converted to float'
+            print ' Correct any mistakes and try again'
+            print ' Aborting ...'
+            sys.exit()
+        tsyseffFile=None
+    return tsyseffFile,tsyseff
+
+### Interpolate input Tsys/eff table to observed frequencies
+def InterpolateTsyseff(tsyseff,chans):
+    print 'Interpolating Tsys/eff table to observed frequencies ...'
+    return np.interp(np.ravel(chans),tsyseff[:,0],tsyseff[:,1])
 
 ### Get single-MS flags, intervals, channel widths, channel frequencies and calculate natural rms (ignoring flags)
-def processMS(ms,kB,tsys,eff,Aant,selectFieldName):
+def ProcessSingleMS(ms,kB,tsyseff,tsyseffFile,Aant,selectFieldName):
     print ''
     print '--- Working on file {0:s} ---'.format(ms)
     t=tables.table(ms)
@@ -75,40 +96,53 @@ def processMS(ms,kB,tsys,eff,Aant,selectFieldName):
     print 'The *interval* array has shape (Nr_integrations) =',interval.shape
     print 'The *channel* width array has shape (-, Nr_channels) =',channelWidths.shape
 
-    rms=np.sqrt(2)*kB*tsys/eff/Aant/np.sqrt(channelWidths*interval.sum()*flag.shape[2])
+    print 'Total Integration on selected field(s) = {0:.2f} h ({1:d} polarisations)'.format(interval.sum()/nrBaseline/3600,flag.shape[2])
+    if tsyseffFile!=None:
+        rms=np.sqrt(2)*kB*InterpolateTsyseff(tsyseff,channelFreqs)/Aant/np.sqrt(channelWidths*interval.sum()*flag.shape[2])
+    else:
+        rms=np.sqrt(2)*kB*tsyseff/Aant/np.sqrt(channelWidths*interval.sum()*flag.shape[2])
     if len(rms.shape)==2 and rms.shape[0]==1: rms=rms[0]
 
-    print 'Total Integration on selected field(s) = {0:.2f} h ({1:d} polarisations)'.format(interval.sum()/nrBaseline/3600,flag.shape[2])
     print 'The Stokes I theoretical natural rms ignoring flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rms),np.nanmax(rms))
 
     return flag,interval,channelWidths,channelFreqs,rms
 
 
 
-### Combine all input .MS files and predict natural rms (both ignoring and applying flags)
-def combineMS(MS,tsys,eff,diam,plotName,selectFieldName):
+### Predict natural rms for an arbitrary number of MS files (both ignoring and applying flags)
+def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
+
+    # Get Tsys/eff either from table (col1 = frequency, col2 = Tsys/eff) or as a float values (frequency independent Tsys/eff value)
+    tsyseffFile,tsyseff=GetTsyseff(tsyseff)
 
     # Derive quantities
-    kB=1380.6                    # Boltzmann constant (Jy m^2 / K)
-    Aant=np.pi*(diam/2)**2       # collecting area of 1 antenna (m^2)
-    SEFD=2*kB*tsys/eff/Aant      # system equivalent flux density (Jy)
+    kB=1380.6                                   # Boltzmann constant (Jy m^2 / K)
+    Aant=np.pi*(diam/2)**2                      # collecting area of 1 antenna (m^2)
+    if tsyseffFile==None:
+        SEFD=2*kB*tsyseff/Aant                  # frequency independent system equivalent flux density (Jy)
+    else:
+        SEFD=2*kB*np.median(tsyseff[:,1])/Aant  # median system equivalent flux density (Jy)
 
     # Print assumptions
     print ''
     print '--- Assumptions ---'
-    print '  Tsys/efficiency      = {0:.1f} K (frequency independent)'.format(tsys/eff)
-    print '  Dish diameter        = {0:.1f} m'.format(diam)
-    print '    and therefore SEFD = {0:.1f} Jy'.format(SEFD)
+    if tsyseffFile==None:
+        print '  Tsys/efficiency      = {0:.1f} K (frequency independent)'.format(tsyseff)
+    else:
+        print '  Tsys/efficiency      = ({0:.1f} - {1:.1f}) K (range over input table {2:s})'.format(tsyseff[:,1].min(),tsyseff[:,1].max(),tsyseffFile)
+        print '                         (frequency range = ({0:.3e} - {1:.3e}) Hz'.format(tsyseff[:,0].min(),tsyseff[:,0].max())
+    print     '  Dish diameter        = {0:.1f} m'.format(diam)
+    print     '    and therefore SEFD = {0:.1f} Jy'.format(SEFD)
 
     # Read MS files to get the flags and calculate single-MS natural rms values (ignoring flags)
 
     # Start with first file ...
-    flag0,interval0,channelWidths0,channelFreqs0,rms0=processMS(MS[0],kB,tsys,eff,Aant,selectFieldName)
+    flag0,interval0,channelWidths0,channelFreqs0,rms0=ProcessSingleMS(MS[0],kB,tsyseff,tsyseffFile,Aant,selectFieldName)
     rmsAll=[rms0]
 
     # ... and do the same for all other MS's appending to the flag array, checking that the channelisation is the same
     for ii in range(1,len(MS)):
-        flagi,intervali,channelWidthsi,channelFreqsi,rmsi=processMS(MS[ii],kB,tsys,eff,Aant,selectFieldName)
+        flagi,intervali,channelWidthsi,channelFreqsi,rmsi=ProcessSingleMS(MS[ii],kB,tsyseff,tsyseffFile,Aant,selectFieldName)
 
         if channelWidths0.shape!=channelWidthsi.shape or (channelWidths0!=channelWidthsi).sum() or (channelFreqs0!=channelFreqsi).sum():
             print ''
@@ -122,7 +156,7 @@ def combineMS(MS,tsys,eff,diam,plotName,selectFieldName):
             interval0=np.concatenate((interval0,intervali),axis=0)
             rmsAll.append(rmsi)
 
-    # Concatenate files
+    # Message concatenated files
     print ''
     print '--- All input tables concatenated ---'
     print 'The concatenated *flag* array has shape (Nr_integrations, Nr_channels, Nr_polarisations) =',flag0.shape
@@ -131,19 +165,24 @@ def combineMS(MS,tsys,eff,diam,plotName,selectFieldName):
 
     print ''
     print '--- Result ---'
-    print 'Calculating natural rms of all .MS files combined ...'
 
     # Reshape arrays
+    print 'Reshaping arrays ...'
     interval0.resize((interval0.shape[0],1,1))
     channelWidths0.resize((channelWidths0.shape[1]))
     channelFreqs0.resize((channelFreqs0.shape[1]))
 
+    # Interpolate Tsys
+    if tsyseffFile!=None:
+       tsyseff=InterpolateTsyseff(tsyseff,channelFreqs0)
+
     # Calculate theoretical natural rms
+    print 'Calculating natural rms of all .MS files combined (with and without flags)...'
     rmsAll=np.array(rmsAll)
     rmsAll=1./np.sqrt( (1./rmsAll**2).sum(axis=0) )
     unflaggedIntegration=(interval0*(1-flag0.astype(int))).sum(axis=(0,2)) # total integration per channel adding up all UNFLAGGED integrations and polarisations (sec)
     unflaggedIntegration[unflaggedIntegration==0]=np.nan
-    rmsUnflagged=np.sqrt(2)*kB*tsys/eff/Aant/np.sqrt(channelWidths0*unflaggedIntegration)
+    rmsUnflagged=np.sqrt(2)*kB*tsyseff/Aant/np.sqrt(channelWidths0*unflaggedIntegration)
 
     print 'The Stokes I theoretical natural rms ignoring flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rmsAll),np.nanmax(rmsAll))
     print 'The Stokes I theoretical natural rms applying flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))

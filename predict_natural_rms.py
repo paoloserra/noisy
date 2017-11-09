@@ -15,22 +15,19 @@ import noisy
 # Print help message and exit
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
-    print 'python predict_natural_rms.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]] [-tsys <tsys/K>] '
-    print '       [-eff <antenna efficiency>] [-diam <antenna diameter/m>] [-field <field name>] [-plot <plot name with extension>]'
+    print 'python predict_natural_rms.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]] [-tsyseff <Tsys/eff (K) OR file>] '
+    print '       [-diam <antenna diameter (m)>] [-field <field name>] [-plot <plot name with extension>]'
+    print ''
+    print ' If you give Tsys/eff as a file it should have two columns: frequency (MHz) and Tsys/eff (K)'
     sys.exit()
 else: arg=sys.argv
 
 # Get telescope parameters (default or from command line) and calculate derived quantities
-# tsys in K (default: 22 K)
-if '-tsys' in arg:
-    tsys=np.float(arg[arg.index('-tsys')+1])
-    del(arg[arg.index('-tsys'):arg.index('-tsys')+2])
-else: tsys=22
-# antenna efficiency (default: 1)
-if '-eff' in arg:
-    eff=np.float(arg[arg.index('-eff')+1])
-    del(arg[arg.index('-eff'):arg.index('-eff')+2])
-else: eff=1.
+# Tsys/eff in K (default: 22 K)
+if '-tsyseff' in arg:
+    tsyseff=arg[arg.index('-tsyseff')+1]
+    del(arg[arg.index('-tsyseff'):arg.index('-tsyseff')+2])
+else: tsyseff='22' # leave as string
 # antenna diameter in m (default: 13.5 m)
 if '-diam' in arg:
     diam=np.float(arg[arg.index('-diam')+1])
@@ -72,4 +69,4 @@ else:
 ### GET NATURAL RMS ###
 #######################
 
-noisy.combineMS(MS,tsys,eff,diam,plotName,selectFieldName)
+noisy.PredictNoise(MS,tsyseff,diam,plotName,selectFieldName)
