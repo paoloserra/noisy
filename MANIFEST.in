@@ -1,0 +1,2 @@
+recursive-include noisy/ *.py
+include noisy/data *.txt

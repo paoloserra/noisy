@@ -1,10 +1,7 @@
-#!/usr/bin/env python
-
 # This module defines functions useful for various scripts in the noisy repository
 
 # To be done
 # - MS files with 4 polarisation products (currently uses all available pols)
-
 
 
 ######################
