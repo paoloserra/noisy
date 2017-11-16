@@ -21,7 +21,7 @@ print ''
 
 if 'help' in sys.argv or '-h' in sys.argv or '--help' in sys.argv:
     print 'Usage:'
-    print 'predict_natural_rms.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]] [-tsyseff <Tsys/eff (K) OR file>] '
+    print 'noisy_predictrms.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]] [-tsyseff <Tsys/eff (K) OR file>] '
     print '       [-diam <antenna diameter (m)>] [-field <field name>] [-plot <plot name with extension>]'
     print ''
     print ' If you give Tsys/eff as a file it should have two columns: frequency (Hz) and Tsys/eff (K)'
