@@ -103,7 +103,7 @@ def ProcessSingleMS(ms,kB,tsyseff,tsyseffFile,Aant,selectFieldName):
         rms=np.sqrt(2)*kB*tsyseff/Aant/np.sqrt(channelWidths*interval.sum()*flag.shape[2])
     if len(rms.shape)==2 and rms.shape[0]==1: rms=rms[0]
 
-    print 'The Stokes I theoretical natural rms ignoring flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rms),np.nanmax(rms))
+    print 'The Stokes I theoretical natural rms ignoring flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rms),np.nanmin(rms),np.nanmax(rms))
 
     return flag,interval,channelWidths,channelFreqs,rms
 
@@ -132,7 +132,9 @@ def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
         print '  Tsys/efficiency      = ({0:.1f} - {1:.1f}) K (range over input table {2:s})'.format(tsyseff[:,1].min(),tsyseff[:,1].max(),tsyseffFile)
         print '                         (frequency range = ({0:.3e} - {1:.3e}) Hz'.format(tsyseff[:,0].min(),tsyseff[:,0].max())
     print     '  Dish diameter        = {0:.1f} m'.format(diam)
-    print     '    and therefore SEFD = {0:.1f} Jy'.format(SEFD)
+    print     '    and therefore SEFD = {0:.1f} Jy'.format(SEFD),
+    if tsyseffFile==None: print ''
+    else: print '(median)'
 
     # Read MS files to get the flags and calculate single-MS natural rms values (ignoring flags)
 
@@ -184,8 +186,8 @@ def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
     unflaggedIntegration[unflaggedIntegration==0]=np.nan
     rmsUnflagged=np.sqrt(2)*kB*tsyseff/Aant/np.sqrt(channelWidths0*unflaggedIntegration)
 
-    print 'The Stokes I theoretical natural rms ignoring flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rmsAll),np.nanmax(rmsAll))
-    print 'The Stokes I theoretical natural rms applying flags is in the range:    *** ({0:.3e} - {1:.3e}) Jy ***'.format(np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))
+    print 'The Stokes I theoretical natural rms ignoring flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rmsAll),np.nanmin(rmsAll),np.nanmax(rmsAll))
+    print 'The Stokes I theoretical natural rms applying flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rmsUnflagged),np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))
 
     # Plot
     if plotName!=None:
