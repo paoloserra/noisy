@@ -23,6 +23,11 @@ if '-plot' in arg:
     del(arg[arg.index('-plot'):arg.index('-plot')+2])
 else: plotName=None
 
+if '-random' in arg:
+    randomizeChanOrder=True
+    del(arg[arg.index('-random')])
+else: randomizeChanOrder=False
+
 # Get input files from command line
 FITS=arg[1:]
 checkfiles=[os.path.exists(jj) for jj in FITS]
@@ -48,4 +53,4 @@ else:
 ### GET NATURAL RMS ###
 #######################
 
-noisy.MeasureCubeNoise(FITS,plotName)
+noisy.MeasureCubeNoise(FITS,plotName,randomizeChanOrder)

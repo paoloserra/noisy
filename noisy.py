@@ -272,7 +272,7 @@ def GetRMS(cube,rmsMode='negative',zoomx=1,zoomy=1,zoomz=1,nrbins=10000,verbose=
 
 ### Measure noise of N cubes
 
-def MeasureCubeNoise(FITS,plotName):
+def MeasureCubeNoise(FITS,plotName,randomizeChanOrder):
 
     for ii in range(0,len(FITS)):
 
@@ -306,12 +306,12 @@ def MeasureCubeNoise(FITS,plotName):
         print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
 
         # Sum channels and measure noise
-        SumChanNoise(cube,plotName)
+        SumChanNoise(cube,plotName,randomizeChanOrder)
 
 
 ### Measure noise as a function of number of averaged channels
 
-def SumChanNoise(cube,plotName,randomizeChanOrder=False):
+def SumChanNoise(cube,plotName,randomizeChanOrder):
     print ' Measuring noise increase as a function of number of summed channels ...'
 
     # Take first unmasked channel and measure its rms
