@@ -306,12 +306,12 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder):
         print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
 
         # Sum channels and measure noise
-        SumChanNoise(cube,plotName,randomizeChanOrder)
+        SumChanNoise(cube,plotName,randomizeChanOrder,globalRms)
 
 
 ### Measure noise as a function of number of averaged channels
 
-def SumChanNoise(cube,plotName,randomizeChanOrder):
+def SumChanNoise(cube,plotName,randomizeChanOrder,globalRms):
     print ' Measuring noise increase as a function of number of summed channels ...'
 
     # Take first unmasked channel and measure its rms
@@ -348,6 +348,7 @@ def SumChanNoise(cube,plotName,randomizeChanOrder):
         plt.loglog(xx,yy,'ko')
         plt.loglog(xx,zz,'r.')
         plt.loglog(xx,yy[0]*np.sqrt(xx),'r-')
+        plt.axhline(y=globalRms,linestyle='--',color='k')
         plt.xlabel('Number summed channels')
         plt.ylabel('rms (data units)')
         plt.subplot(212)

@@ -13,7 +13,7 @@ import noisy
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
     print 'python measure_cube_noise.py <file1.ms> [file2.ms [file3.ms ... [fileN.ms] ... ]]'
-    print '       [-plot <plot name with extension>]'
+    print '       [-plot <plot name with extension>] [-random]'
     sys.exit()
 else: arg=sys.argv
 
