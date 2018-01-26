@@ -16,7 +16,23 @@
 import numpy as np
 import pyrap.tables as tables
 import sys,os
+try: from astropy.io import fits
+except ImportError:
+    print ''
+    print ' WARNING:'
+    print ' Could not find astropy python module; certain functions may crash'
+    print ''
+import math as mt
+import scipy as sp
+from scipy import stats
+from scipy import optimize
+import scipy.ndimage as nd
+from distutils.version import StrictVersion, LooseVersion
 
+## check numpy and scipy version numbers for the nanmedian function import
+if LooseVersion(np.__version__)>=LooseVersion('1.9.0'): from numpy import nanmedian
+elif LooseVersion(sp.__version__)<LooseVersion('0.15.0'): from scipy.stats import nanmedian
+else: from scipy import nanmedian
 
 
 ########################
@@ -205,3 +221,141 @@ def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
         plt.legend(('all data','unflagged data'),loc='lower right')
         plt.savefig(plotName)
         print 'Plot {0:s} saved (full path)'.format(plotName)
+
+
+
+### Measure noise of single cube
+def GetRMS(cube,rmsMode='negative',zoomx=1,zoomy=1,zoomz=1,nrbins=10000,verbose=0,min_hist_peak=0.05,sample=1):
+    sh=cube.shape
+
+    if len(sh) == 2:
+        # add an extra dimension to make it a 3d cube
+        cube = np.array([cube])
+    sh=cube.shape
+
+    x0,x1=int(mt.ceil((1-1./zoomx)*sh[2]/2)),int(mt.floor((1+1./zoomx)*sh[2]/2))+1
+    y0,y1=int(mt.ceil((1-1./zoomy)*sh[1]/2)),int(mt.floor((1+1./zoomy)*sh[1]/2))+1
+    z0,z1=int(mt.ceil((1-1./zoomz)*sh[0]/2)),int(mt.floor((1+1./zoomz)*sh[0]/2))+1
+    if verbose: print (' Estimating rms on subcube (x,y,z zoom = %.0f,%.0f,%.0f) ...' % (zoomx, zoomy, zoomz))
+    if verbose: print (' Estimating rms on subcube sampling every %i voxels ...' % (sample))
+    if verbose: print (' ... Subcube shape is ' + str(cube[z0:z1:sample, y0:y1:sample, x0:x1:sample].shape) + ' ...')
+
+    if rmsMode=='negative':
+        nrbins=max(100,int(mt.ceil(float(np.array(cube.shape).prod())/1e+5))) # overwrites nrbins value!!!
+        cubemin=np.nanmin(cube)
+        bins=np.arange(cubemin,abs(cubemin)/nrbins-1e-12,abs(cubemin)/nrbins)
+        fluxval=(bins[:-1]+bins[1:])/2
+        rmshisto=np.histogram(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample][~np.isnan(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample])],bins=bins)[0]
+
+        nrsummedbins=0
+        while rmshisto[-nrsummedbins-1:].sum()<min_hist_peak*rmshisto.sum():
+            nrsummedbins+=1
+        if nrsummedbins:
+            if verbose: print ('  ... adjusting bin size to get a fraction of voxels in central bin >= ' + str(min_hist_peak))
+            nrbins/=(nrsummedbins+1)
+            bins=np.arange(cubemin,abs(cubemin)/nrbins-1e-12,abs(cubemin)/nrbins)
+            fluxval=(bins[:-1]+bins[1:])/2
+            rmshisto=np.histogram(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample][~np.isnan(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample])],bins=bins)[0]
+
+        rms=abs(optimize.curve_fit(GaussianNoise,fluxval,rmshisto,p0=[rmshisto.max(),-fluxval[rmshisto<rmshisto.max()/2].max()*2/2.355])[0][1])
+
+    elif rmsMode=='mad':
+        rms=nanmedian(abs(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample]-nanmedian(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample],axis=None)),axis=None)/0.6745
+
+    elif rmsMode=='std':
+        rms=np.nanstd(cube[z0:z1:sample,y0:y1:sample,x0:x1:sample],axis=None,dtype=np.float64)
+
+    if verbose: print('  ... %s rms = %.2e (data units)' % (rmsMode, rms))
+    return rms
+
+
+
+### Measure noise of N cubes
+
+def MeasureCubeNoise(FITS,plotName):
+
+    for ii in range(0,len(FITS)):
+
+        print ''
+        print '--- Working on file {0:s} ---'.format(FITS[ii])
+
+        # Open cube
+        f=fits.open(FITS[ii])
+        cube=f[0].data
+        head=f[0].header
+        f.close()
+        cube=np.squeeze(cube)
+
+        # Flag all-zero channels
+        print(' Flagging all-zero channels ...')
+        zeroChans=(cube==0).prod(axis=(1,2))
+        for cc in range(zeroChans.shape[0]):
+            if zeroChans[cc]: cube[cc]=np.nan
+        print(' ... {0:d} channels flagged'.format(zeroChans.sum()))
+
+        # Measure global rms
+        globalRms=GetRMS(cube,rmsMode='mad',verbose=1)
+
+        # Measure rms per channel and take median
+        print(' Measuring median and range of single-channel {0:s} rms values (excluding all-nan channels) ...'.format('mad'))
+        singleChanNoise=[]
+        for cc in cube:
+            if not np.isnan(cc).prod(): singleChanNoise.append(GetRMS(cc,rmsMode='mad'))
+
+        print('  median: {0:.2e} (data units)'.format(nanmedian(np.array(singleChanNoise))))
+        print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
+
+        # Sum channels and measure noise
+        SumChanNoise(cube,plotName)
+
+
+### Measure noise as a function of number of averaged channels
+
+def SumChanNoise(cube,plotName):
+    print ' Measuring noise increase as a function of number of summed channels ...'
+
+    # Take first unmasked channel and measure its rms
+    c0=0
+    while np.isnan(cube[c0]).prod(): c0+=1
+    avCube=cube[c0]
+    xx,yy,zz,aa=[1,],[GetRMS(avCube,rmsMode='mad')],[GetRMS(avCube,rmsMode='mad')],[0]
+    safelist=[c0,]
+
+    # Add unmasked channels one by one and measure the noise
+    #print('  {0:7d} {1:.3e} {2:.3e}  *  {3:10.3e}'.format(xx[-1],yy[-1],yy[0]*np.sqrt(xx[-1]),A))
+    for cc in range(c0+1,cube.shape[0]):
+        print cc,
+        cc=np.random.randint(c0+1,cube.shape[0])
+        while cc in safelist:
+            cc=np.random.randint(c0+1,cube.shape[0])
+        safelist.append(cc)
+        print cc
+        if not np.isnan(cube[cc]).prod():
+            A=np.corrcoef(np.ravel(avCube),y=np.ravel(cube[cc]))[0,1]
+            avCube+=cube[cc]
+            xx.append(xx[-1]+1)
+            yy.append(GetRMS(avCube,rmsMode='mad'))
+            zz.append(GetRMS(cube[cc],rmsMode='mad'))
+            aa.append(A)
+            #print('  {0:7d} {1:.3e} {2:.3e}  *  {3:10.3e}'.format(xx[-1],yy[-1],yy[0]*np.sqrt(xx[-1]),A))
+
+    # Plot
+    if plotName!=None:
+        print ''
+        print '--- Plot ---'
+        print 'Busy plotting ...'
+        import matplotlib.pyplot as plt
+        xx,yy=np.array(xx),np.array(yy)
+        plt.subplot(211)
+        plt.loglog(xx,yy,'ko')
+        plt.loglog(xx,zz,'r.')
+        plt.loglog(xx,yy[0]*np.sqrt(xx),'r-')
+        plt.xlabel('Number summed channels')
+        plt.ylabel('rms (data units)')
+        plt.subplot(212)
+        plt.semilogx(xx,aa,'ko')
+        plt.xlabel('Number summed channels')
+        plt.ylabel('corr coeff')
+        plt.savefig(plotName)
+        print 'Plot {0:s} saved (full path)'.format(plotName)
+
