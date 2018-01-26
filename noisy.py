@@ -311,7 +311,7 @@ def MeasureCubeNoise(FITS,plotName):
 
 ### Measure noise as a function of number of averaged channels
 
-def SumChanNoise(cube,plotName):
+def SumChanNoise(cube,plotName,randomizeChanOrder=False):
     print ' Measuring noise increase as a function of number of summed channels ...'
 
     # Take first unmasked channel and measure its rms
@@ -324,12 +324,10 @@ def SumChanNoise(cube,plotName):
     # Add unmasked channels one by one and measure the noise
     #print('  {0:7d} {1:.3e} {2:.3e}  *  {3:10.3e}'.format(xx[-1],yy[-1],yy[0]*np.sqrt(xx[-1]),A))
     for cc in range(c0+1,cube.shape[0]):
-        print cc,
-        cc=np.random.randint(c0+1,cube.shape[0])
-        while cc in safelist:
+        if randomizeChanOrder:
             cc=np.random.randint(c0+1,cube.shape[0])
-        safelist.append(cc)
-        print cc
+            while cc in safelist: cc=np.random.randint(c0+1,cube.shape[0])
+            safelist.append(cc)
         if not np.isnan(cube[cc]).prod():
             A=np.corrcoef(np.ravel(avCube),y=np.ravel(cube[cc]))[0,1]
             avCube+=cube[cc]
