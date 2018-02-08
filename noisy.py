@@ -316,7 +316,7 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None):
 ### Measure noise as a function of number of averaged channels
 
 def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunits='data units'):
-    print ' Measuring noise increase as a function of number of summed channels ...'
+    print ' Measuring noise increase as a function of number of averaged channels ...'
 
     # Take first unmasked channel and measure its rms
     c0=0
@@ -352,6 +352,7 @@ def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunit
         plt.subplot(211)
         plt.loglog(xx,yy,'ko')
         plt.loglog(xx,zz,'r.')
+        plt.legend(('aver N chans','single chan'),loc='lower left',numpoints=1)
         plt.loglog(xx,yy[0]/np.sqrt(xx),'r-')
         plt.axhline(y=globalRms,linestyle='--',color='k')
         plt.xlabel('channel number')
