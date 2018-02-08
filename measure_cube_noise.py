@@ -12,8 +12,11 @@ import noisy
 # Print help message and exit
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
-    print 'python measure_cube_noise.py <cube1.fits> [cube2.fits [cube3.fits ... [cubeN.ms] ... ]]'
+    print 'python measure_cube_noise.py <cube1.fits> [cube2.fits [cube3.fits ... [cubeN.fits] ... ]]'
     print '       [-plot <plot name with extension>] [-title <plot title>] [-random]'
+    print ''
+    print ' The -random switch is used when averaging channels to inspect the scaling of the noise.'
+    print ' When on, channels are averaged in a random order rather than following their order in the cube.'
     sys.exit()
 else: arg=sys.argv
 
