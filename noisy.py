@@ -272,7 +272,7 @@ def GetRMS(cube,rmsMode='negative',zoomx=1,zoomy=1,zoomz=1,nrbins=10000,verbose=
 
 ### Measure noise of N cubes
 
-def MeasureCubeNoise(FITS,plotName,randomizeChanOrder):
+def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None):
 
     for ii in range(0,len(FITS)):
 
@@ -285,6 +285,10 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder):
         head=f[0].header
         f.close()
         cube=np.squeeze(cube)
+
+        # Get data units
+        if 'BUNIT' in head: dataunits=head['BUNIT']
+        else: dataunits='data units'
 
         # Flag all-zero channels
         print(' Flagging all-zero channels ...')
@@ -305,13 +309,13 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder):
         print('  median: {0:.2e} (data units)'.format(nanmedian(np.array(singleChanNoise))))
         print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
 
-        # Sum channels and measure noise
-        SumChanNoise(cube,plotName,randomizeChanOrder,globalRms)
+        # Average channels and measure noise
+        AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=title,dataunits=dataunits)
 
 
 ### Measure noise as a function of number of averaged channels
 
-def SumChanNoise(cube,plotName,randomizeChanOrder,globalRms):
+def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunits='data units'):
     print ' Measuring noise increase as a function of number of summed channels ...'
 
     # Take first unmasked channel and measure its rms
@@ -330,7 +334,7 @@ def SumChanNoise(cube,plotName,randomizeChanOrder,globalRms):
             safelist.append(cc)
         if not np.isnan(cube[cc]).prod():
             A=np.corrcoef(np.ravel(avCube),y=np.ravel(cube[cc]))[0,1]
-            avCube+=cube[cc]
+            avCube=(avCube*xx[-1]+cube[cc])/(xx[-1]+1)
             xx.append(xx[-1]+1)
             yy.append(GetRMS(avCube,rmsMode='mad'))
             zz.append(GetRMS(cube[cc],rmsMode='mad'))
@@ -343,18 +347,23 @@ def SumChanNoise(cube,plotName,randomizeChanOrder,globalRms):
         print '--- Plot ---'
         print 'Busy plotting ...'
         import matplotlib.pyplot as plt
-        xx,yy=np.array(xx),np.array(yy)
+        xx,yy,aa=np.array(xx),np.array(yy),np.array(aa)
+        plt.figtext(0.5,0.92,title,ha='center',va='center')
         plt.subplot(211)
         plt.loglog(xx,yy,'ko')
         plt.loglog(xx,zz,'r.')
-        plt.loglog(xx,yy[0]*np.sqrt(xx),'r-')
+        plt.loglog(xx,yy[0]/np.sqrt(xx),'r-')
         plt.axhline(y=globalRms,linestyle='--',color='k')
-        plt.xlabel('Number summed channels')
-        plt.ylabel('rms (data units)')
+        plt.xlabel('channel number')
+        plt.ylabel('noise ({0:s})'.format(dataunits))
+        xlim=plt.xlim()
         plt.subplot(212)
-        plt.semilogx(xx,aa,'ko')
-        plt.xlabel('Number summed channels')
+        plt.semilogx(xx[1:],aa[1:],'ro')
+        for dd in np.arange(-0.75,1,0.25): plt.axhline(y=dd,linestyle=':',color='k')
+        plt.xlabel('channel number')
         plt.ylabel('corr coeff')
+        plt.xlim(xlim[0],xlim[1])
+        plt.ylim(-1,1)
         plt.savefig(plotName)
         print 'Plot {0:s} saved (full path)'.format(plotName)
 
