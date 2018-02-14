@@ -355,7 +355,7 @@ def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunit
         plt.legend(('aver N chans','single chan'),loc='lower left',numpoints=1)
         plt.loglog(xx,yy[0]/np.sqrt(xx),'r-')
         plt.axhline(y=globalRms,linestyle='--',color='k')
-        plt.xlabel('channel number')
+        plt.xlabel('')
         plt.ylabel('noise ({0:s})'.format(dataunits))
         xlim=plt.xlim()
         if ylim!=None: plt.ylim(map(float,ylim.split(',')))
