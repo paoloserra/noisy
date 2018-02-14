@@ -13,7 +13,7 @@ import noisy
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
     print 'python measure_cube_noise.py <cube1.fits> [cube2.fits [cube3.fits ... [cubeN.fits] ... ]]'
-    print '       [-plot <plot name with extension>] [-title <plot title>] [-random]'
+    print '       [-plot <plot name with extension>] [-title <plot title>] [-random] [-ylim y1,y2]'
     print ''
     print ' The -random switch is used when averaging channels to inspect the scaling of the noise.'
     print ' When on, channels are averaged in a random order rather than following their order in the cube.'
@@ -31,6 +31,12 @@ if '-title' in arg:
     title=arg[arg.index('-title')+1]
     del(arg[arg.index('-title'):arg.index('-title')+2])
 else: title=None
+
+# plots y axis limits (default: None)
+if '-ylim' in arg:
+    ylim=arg[arg.index('-ylim')+1]
+    del(arg[arg.index('-ylim'):arg.index('-ylim')+2])
+else: ylim=None
 
 # randomize channel order
 if '-random' in arg:
@@ -63,4 +69,4 @@ else:
 ### GET NATURAL RMS ###
 #######################
 
-noisy.MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=title)
+noisy.MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=title,ylim=ylim)

@@ -272,7 +272,7 @@ def GetRMS(cube,rmsMode='negative',zoomx=1,zoomy=1,zoomz=1,nrbins=10000,verbose=
 
 ### Measure noise of N cubes
 
-def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None):
+def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None,ylim=None):
 
     for ii in range(0,len(FITS)):
 
@@ -310,12 +310,12 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None):
         print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
 
         # Average channels and measure noise
-        AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=title,dataunits=dataunits)
+        AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=title,dataunits=dataunits,ylim=ylim)
 
 
 ### Measure noise as a function of number of averaged channels
 
-def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunits='data units'):
+def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunits='data units',ylim=None):
     print ' Measuring noise increase as a function of number of averaged channels ...'
 
     # Take first unmasked channel and measure its rms
@@ -358,6 +358,7 @@ def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunit
         plt.xlabel('channel number')
         plt.ylabel('noise ({0:s})'.format(dataunits))
         xlim=plt.xlim()
+        if ylim!=None: plt.ylim(map(float,ylim.split(',')))
         plt.subplot(212)
         plt.semilogx(xx[1:],aa[1:],'ro')
         for dd in np.arange(-0.75,1,0.25): plt.axhline(y=dd,linestyle=':',color='k')
