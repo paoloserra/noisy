@@ -13,10 +13,12 @@ import noisy
 if 'help' in sys.argv or '-h' in sys.argv:
     print ' Run as follows'
     print 'python measure_cube_noise.py <cube1.fits> [cube2.fits [cube3.fits ... [cubeN.fits] ... ]]'
-    print '       [-plot <plot name with extension>] [-title <plot title>] [-random] [-ylim y1,y2]'
+    print '       [-plot <plot name with extension>] [-title <plot title>] [-random] [-contsub] [-ylim y1,y2]'
     print ''
     print ' The -random switch is used when averaging channels to inspect the scaling of the noise.'
     print ' When on, channels are averaged in a random order rather than following their order in the cube.'
+    print
+    print ' The -contsub swithc is used to include the noise scaling prediction in case of continuum subtraction.'
     sys.exit()
 else: arg=sys.argv
 
@@ -44,6 +46,12 @@ if '-random' in arg:
     del(arg[arg.index('-random')])
 else: randomizeChanOrder=False
 
+# randomize channel order
+if '-contsub' in arg:
+    contsub=True
+    del(arg[arg.index('-contsub')])
+else: contsub=False
+
 # Get input files from command line
 FITS=arg[1:]
 checkfiles=[os.path.exists(jj) for jj in FITS]
@@ -69,4 +77,4 @@ else:
 ### GET NATURAL RMS ###
 #######################
 
-noisy.MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=title,ylim=ylim)
+noisy.MeasureCubeNoise(FITS,plotName,randomizeChanOrder=randomizeChanOrder,title=title,ylim=ylim,contsub=contsub)

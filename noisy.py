@@ -272,7 +272,7 @@ def GetRMS(cube,rmsMode='negative',zoomx=1,zoomy=1,zoomz=1,nrbins=10000,verbose=
 
 ### Measure noise of N cubes
 
-def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None,ylim=None):
+def MeasureCubeNoise(FITS,plotName,randomizeChanOrder=False,title=None,ylim=None,contsub=False):
 
     for ii in range(0,len(FITS)):
 
@@ -310,12 +310,12 @@ def MeasureCubeNoise(FITS,plotName,randomizeChanOrder,title=None,ylim=None):
         print('  range : ({0:.2e}-{1:.2e}) (data units)'.format(np.nanmin(singleChanNoise),np.nanmax(singleChanNoise)))
 
         # Average channels and measure noise
-        AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=title,dataunits=dataunits,ylim=ylim)
+        AverChanNoise(cube,plotName,globalRms,randomizeChanOrder=randomizeChanOrder,title=title,dataunits=dataunits,ylim=ylim,contsub=contsub)
 
 
 ### Measure noise as a function of number of averaged channels
 
-def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunits='data units',ylim=None):
+def AverChanNoise(cube,plotName,globalRms,randomizeChanOrder=False,title=None,dataunits='data units',ylim=None,contsub=False):
     print ' Measuring noise increase as a function of number of averaged channels ...'
 
     # Take first unmasked channel and measure its rms
@@ -353,12 +353,18 @@ def AverChanNoise(cube,plotName,randomizeChanOrder,globalRms,title=None,dataunit
         plt.loglog(xx,yy,'ko')
         plt.loglog(xx,zz,'r.')
         plt.legend(('aver N chans','single chan'),loc='lower left',numpoints=1)
-        plt.loglog(xx,yy[0]/np.sqrt(xx),'r-')
+        plt.loglog(xx,globalRms/np.sqrt(xx),'r-')
+        if contsub: plt.loglog(xx,globalRms/np.sqrt(xx)*np.sqrt(1-(xx.astype(float)-1)/xx.max()),'g-')
         plt.axhline(y=globalRms,linestyle='--',color='k')
         plt.xlabel('channel number')
         plt.ylabel('noise ({0:s})'.format(dataunits))
         xlim=plt.xlim()
         if ylim!=None: plt.ylim(map(float,ylim.split(',')))
+        else:
+            y0=(globalRms/np.sqrt(xx)).min()
+            y1=globalRms
+            fac=y1/y0
+            plt.ylim(y0*fac**(-1.3),y1*fac**0.3)
         plt.subplot(212)
         plt.semilogx(xx[1:],aa[1:],'ro')
         for dd in np.arange(-0.75,1,0.25): plt.axhline(y=dd,linestyle=':',color='k')
