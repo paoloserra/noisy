@@ -205,7 +205,10 @@ def PredictNoise(MS,tsyseff,diam,plotName,selectFieldName):
     rmsUnflagged=np.sqrt(2)*kB*tsyseff/Aant/np.sqrt(channelWidths0*unflaggedIntegration)
 
     print 'The Stokes I theoretical natural rms ignoring flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rmsAll),np.nanmin(rmsAll),np.nanmax(rmsAll))
-    print 'The Stokes I theoretical natural rms applying flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rmsUnflagged),np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))
+    if not (~np.isnan(unflaggedIntegration)).sum():
+        print ''
+        print 'All data are flagged! Cannot predict the Stokes I theoretical natural rms applying flags.'
+    else:  print 'The Stokes I theoretical natural rms applying flags has median and range:    *** {0:.3e} Jy/b, ({1:.3e} - {2:.3e}) Jy/b ***'.format(np.nanmedian(rmsUnflagged),np.nanmin(rmsUnflagged),np.nanmax(rmsUnflagged))
 
     # Plot
     if plotName!=None:
