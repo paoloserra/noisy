@@ -101,13 +101,13 @@ def ProcessSingleMS(ms,kB,tsyseff,tsyseffFile,Aant,selectFieldName):
     print 'Number of baselines = {0:d}'.format(nrBaseline)
     print 'Frequency coverage  = {0:.5e} Hz - {1:.5e} Hz'.format(channelFreqs.min(),channelFreqs.max())
     if np.unique(channelWidths).shape[0]==1: print 'Channel width = {0:.5e} Hz'.format(np.unique(channelWidths)[0])
-    else: print 'The channel width takes the following values:',np.unique(channelWidths),'Hz'
+    else: print 'The channel width takes the following unique values:',np.unique(channelWidths),'Hz'
 
     print 'Loading flags and intervals ...'
     flag=t.getcol('FLAG')[selection]          # flagged data have flag = True
     interval=t.getcol('INTERVAL')[selection]
     if np.unique(interval).shape[0]==1: print 'Interval = {0:.5e} sec'.format(np.unique(interval)[0])
-    else: print 'The channel width takes the following values:',interval,'sec'
+    else: print 'The interval takes the following unique values:',np.unique(interval),'sec'
     t.close()
 
     print 'The *flag* array has shape (Nr_integrations, Nr_channels, Nr_polarisations) =',flag.shape
